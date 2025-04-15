@@ -1,0 +1,124 @@
+.square {
+  background: #34CCEB;
+  border: 1px solid #999;
+  font-weight: bold;
+  padding: 0;
+  text-align: center;
+  width: 80px;
+  aspect-ratio: 1 / 1; /* ensures square shape */
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+  box-sizing: border-box;
+}
+
+.square:hover {
+  background-color: aqua;
+}
+
+.square:disabled {
+  background-color: #cfd8dc;
+  cursor: not-allowed;
+}
+
+/* Grid container for 3x3 game board */
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 5px;
+  justify-content: center;
+  margin: 20px auto;
+}
+
+/* Removed .row float-based layout since we're using Grid */
+
+/* General container styling */
+div {
+  border: #34CCEB;
+}
+
+.app-container {
+  padding: 20px;
+}
+
+.game-container {
+  background: rgb(8, 0, 0);
+  padding: 20px;
+  min-height: 50vh;
+}
+
+.error {
+  color: rgb(255, 13, 13);
+  font-weight: bold;
+  padding: 20px;
+}
+
+/* Multi-board layout */
+.boards {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.player-board,
+.opponent-board {
+  flex: 1;
+}
+
+/* Used inside GameScreen.jsx for grids */
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.connection-status {
+  padding: 8px;
+  background: #f0f0f0;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.board-section {
+  margin: 0 10px;
+}
+
+.game-status {
+  text-align: center;
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.your-turn {
+  background: #e6f7e6;
+  font-weight: bold;
+}
+
+.opponent-turn {
+  background: #fff3e6;
+}
+
+.pulse-animation {
+  animation: pulse 1.5s infinite;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+  }
+}

@@ -1,62 +1,202 @@
-import './App.css';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { socket } from '../Server/socket'; 
+import Square from './components/Square';
+import GameScreen from './components/GameScreen';
+import '/Styles/App.css';
 
-function Square({ value, onClick }) {
-  return (
-    <button className="square" onClick={onClick}>
-      {value}
-    </button>
-  );
-}
-
-export default function Board() {
-  // Track selected squares as individual states
-  const [square1, setSquare1] = useState('🌊');
-  const [square2, setSquare2] = useState('🌊');
-  const [square3, setSquare3] = useState('🌊');
-  const [square4, setSquare4] = useState('🌊');
-  const [square5, setSquare5] = useState('🌊');
-  const [square6, setSquare6] = useState('🌊');
-  const [square7, setSquare7] = useState('🌊');
-  const [square8, setSquare8] = useState('🌊');
-  const [square9, setSquare9] = useState('🌊');
-
-  // Track total selected count
+export default function App() {
+  const [screen, setScreen] = useState('setup');
+  const [gameId, setGameId] = useState(null);
+  const [joinGameId, setJoinGameId] = useState('');
+  const [board, setBoard] = useState(Array(9).fill('🌊'));
   const [selectedCount, setSelectedCount] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
-  // Generic click handler
-  const handleClick = (currentValue, setter) => {
-    if (currentValue === '🚤') {
-      setter('🌊');
-      setSelectedCount(prev => prev - 1);
-    } else if (selectedCount < 3) {
-      setter('🚤');
-      setSelectedCount(prev => prev + 1);
-    }
-  };
+  // Socket connection
+  useEffect(() => {
+    const onConnect = () => {
+      console.log('Socket connected:', socket.id);
+      setConnectionStatus('Connected');
+    };
+
+    const onDisconnect = () => {
+      console.log('Socket disconnected');
+      setConnectionStatus('Disconnected');
+    };
+
+    const onConnectError = (err) => {
+      console.error('Connection error:', err);
+      setConnectionStatus(`Error: ${err.message}`);
+    };
+
+    socket.connect();
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
+      socket.disconnect();
+    };
+  }, []);
+
+  // Handle square clicks
+  const handleSquareClick = useCallback((index) => {
+    setBoard(prevBoard => {
+      const newBoard = [...prevBoard];
+      if (newBoard[index] === '🚤') {
+        newBoard[index] = '🌊';
+      } else if (prevBoard.filter(x => x === '🚤').length < 3) {
+        newBoard[index] = '🚤';
+      }
+      return newBoard;
+    });
+  }, []);
+
+
+  useEffect(() => {
+    setSelectedCount(board.filter(cell => cell === '🚤').length);
+  }, [board]);
+
+  const createGame = useCallback(() => {
+    setConnectionStatus('Creating game...');
+    socket.emit('createGame', (response) => {
+      if (response?.success) {
+        setGameId(response.gameId);
+        setConnectionStatus('Connected');
+      } else {
+        setConnectionStatus(`Error: ${response?.error || 'Unknown error'}`);
+      }
+    });
+  }, []);
+
+  const joinGame = useCallback(() => {
+    if (!joinGameId) return;
+
+    setConnectionStatus('Joining game...');
+    socket.emit('joinGame', { gameId: joinGameId }, (response) => {
+      if (response?.success) {
+        setGameId(joinGameId);
+        setConnectionStatus('Connected to game');
+      } else {
+        setConnectionStatus(`Error: ${response?.error || 'Join failed'}`);
+      }
+    });
+  }, [joinGameId]);
+
+  const startGame = useCallback(() => {
+    if (selectedCount !== 3 || !gameId) return;
+
+    setConnectionStatus('Submitting board...');
+    socket.emit('submitBoard', { gameId, board }, (response) => {
+      if (!response) {
+        setConnectionStatus('Error: No server response');
+        return;
+      }
+
+      if (response.success) {
+        if (response.playersReady === response.totalPlayers) {
+          setScreen('game');
+          setConnectionStatus('Game started!');
+        } else {
+          setConnectionStatus('Waiting for opponent...');
+        }
+      } else {
+        setConnectionStatus(`Error: ${response.error}`);
+      }
+    });
+  }, [selectedCount, gameId, board]);
+
+  useEffect(() => {
+    socket.on('gameStart', (data) => {
+      console.log('Game started by server:', data);
+      setScreen('game');
+      setConnectionStatus('Game started!');
+    });
+
+    return () => {
+      socket.off('gameStart');
+    };
+  }, []);
 
   return (
-    <>
-      <div className="button-container">
-        <div className="row">
-          <Square value={square1} onClick={() => handleClick(square1, setSquare1)} />
-          <Square value={square2} onClick={() => handleClick(square2, setSquare2)} />
-          <Square value={square3} onClick={() => handleClick(square3, setSquare3)} />
-        </div>
-        <div className="row">
-          <Square value={square4} onClick={() => handleClick(square4, setSquare4)} />
-          <Square value={square5} onClick={() => handleClick(square5, setSquare5)} />
-          <Square value={square6} onClick={() => handleClick(square6, setSquare6)} />
-        </div>
-        <div className="row">
-          <Square value={square7} onClick={() => handleClick(square7, setSquare7)} />
-          <Square value={square8} onClick={() => handleClick(square8, setSquare8)} />
-          <Square value={square9} onClick={() => handleClick(square9, setSquare9)} />
-        </div>
+    <div className="app-container">
+      <div className="connection-banner">
+        Status: {connectionStatus} | {socket?.id ? `ID: ${socket.id}` : 'Connecting...'}
       </div>
-      <div className="message">
-        {selectedCount === 3 ? <button className='ready to start'>Ready to Start</button> : `Select ${3 - selectedCount} more squares`}
-      </div>
-    </>
+
+      {screen === 'setup' ? (
+        <div className="setup-phase">
+          <h1>Battleship Setup</h1>
+          <div className="board">
+            {board.map((value, index) => (
+              <Square
+                key={`square-${index}`}
+                value={value}
+                onClick={() => handleSquareClick(index)}
+                disabled={connectionStatus !== 'Connected' && connectionStatus !== 'Connected to game'}
+              />
+            ))}
+          </div>
+
+          <div className="controls">
+            <p className="selection-status">
+              {selectedCount === 3 ? 'Ready to start!' : `Select ${3 - selectedCount} more squares`}
+            </p>
+
+            <div className="button-group">
+              {!gameId && (
+                <>
+                  <button onClick={createGame} disabled={!socket.connected} className="create-button">
+                    {socket.connected ? 'Create Game' : 'Connecting...'}
+                  </button>
+                  <div className="join-section">
+                    <input
+                      type="text"
+                      placeholder="Enter Game ID"
+                      value={joinGameId}
+                      onChange={(e) => setJoinGameId(e.target.value)}
+                      disabled={!socket.connected}
+                    />
+                    <button
+                      onClick={joinGame}
+                      disabled={!joinGameId || !socket.connected}
+                      className="join-button"
+                    >
+                      Join Game
+                    </button>
+                  </div>
+                </>
+              )}
+
+              <button
+                onClick={startGame}
+                disabled={selectedCount !== 3 || !gameId || !socket.connected}
+                className="start-button"
+              >
+                Start Game
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        gameId ? (
+          <GameScreen 
+            gameId={gameId} 
+            playerBoard={board} 
+            onBack={() => setScreen('setup')}
+          />
+        ) : (
+          <div className="error-screen">
+            <h2>Error: Missing Game ID</h2>
+            <button onClick={() => setScreen('setup')}>
+              Return to Setup
+            </button>
+          </div>
+        )
+      )}
+    </div>
   );
 }
