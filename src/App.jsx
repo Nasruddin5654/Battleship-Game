@@ -8,8 +8,8 @@ export default function App() {
   const [screen, setScreen] = useState('setup');
   const [gameId, setGameId] = useState(null);
   const [joinGameId, setJoinGameId] = useState('');
-  const [board, setBoard] = useState(Array(9).fill('🌊'));
-  const [selectedCount, setSelectedCount] = useState(0);
+  const [board, setBoard] = useState(Array(36).fill('🌊')); // 6x6 grid (36 squares)
+  const [selectedCount, setSelectedCount] = useState(0); // Track selected boats (now 6)
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
   // Socket connection
@@ -48,13 +48,12 @@ export default function App() {
       const newBoard = [...prevBoard];
       if (newBoard[index] === '🚤') {
         newBoard[index] = '🌊';
-      } else if (prevBoard.filter(x => x === '🚤').length < 3) {
+      } else if (prevBoard.filter(x => x === '🚤').length < 6) { // Allow 6 boats now
         newBoard[index] = '🚤';
       }
       return newBoard;
     });
   }, []);
-
 
   useEffect(() => {
     setSelectedCount(board.filter(cell => cell === '🚤').length);
@@ -87,7 +86,7 @@ export default function App() {
   }, [joinGameId]);
 
   const startGame = useCallback(() => {
-    if (selectedCount !== 3 || !gameId) return;
+    if (selectedCount !== 6 || !gameId) return; // Check for 6 boats now
 
     setConnectionStatus('Submitting board...');
     socket.emit('submitBoard', { gameId, board }, (response) => {
@@ -143,7 +142,7 @@ export default function App() {
 
           <div className="controls">
             <p className="selection-status">
-              {selectedCount === 3 ? 'Ready to start!' : `Select ${3 - selectedCount} more squares`}
+              {selectedCount === 6 ? 'Ready to start!' : `Select ${6 - selectedCount} more squares`} {/* Update message for 6 boats */}
             </p>
 
             <div className="button-group">
@@ -173,7 +172,7 @@ export default function App() {
 
               <button
                 onClick={startGame}
-                disabled={selectedCount !== 3 || !gameId || !socket.connected}
+                disabled={selectedCount !== 6 || !gameId || !socket.connected} // Disable start if not 6 boats
                 className="start-button"
               >
                 Start Game

@@ -1,137 +1,102 @@
-// src/components/GameScreen.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Square from './Square';
-import { socket } from '../../Server/socket'; // Verify this path matches your structure
-import '../../Styles/App.css'; 
+import { socket, connectSocket } from '../../Server/socket';
+import '../../Styles/App.css';
 
 export default function GameScreen({ gameId, playerBoard }) {
-  const [opponentBoard, setOpponentBoard] = useState(Array(9).fill('🌊'));
+  const [opponentBoard, setOpponentBoard] = useState(Array(36).fill('🌊'));
   const [myTurn, setMyTurn] = useState(false);
   const [gameStatus, setGameStatus] = useState('Waiting for game to start...');
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
-  const prevGameId = useRef();
 
-  // Socket event handlers
   useEffect(() => {
-    console.log(`Initializing game ${gameId}`);
-    
+    connectSocket();
+
     const onGameStart = ({ startingPlayer }) => {
       const isMyTurn = socket.id === startingPlayer;
       setMyTurn(isMyTurn);
       setGameStatus(isMyTurn ? 'Your turn!' : 'Opponent\'s turn');
-      console.log(`Game started! First turn: ${startingPlayer}`);
     };
 
     const onAttackResult = ({ position, result }) => {
-      const newBoard = [...opponentBoard];
-      newBoard[position] = result === 'hit' ? '💥' : '❌';
-      setOpponentBoard(newBoard);
-      setMyTurn(true);
-      setGameStatus('Your turn!');
+      setOpponentBoard(prev => {
+        const updated = [...prev];
+        updated[position] = result === 'hit' ? '💥' : '❌';
+        return updated;
+      });
+
+      if (result === 'miss') {
+        setMyTurn(false);
+        setGameStatus('Opponent\'s turn');
+      } else {
+        setGameStatus('Your turn!');
+      }
     };
 
     const onOpponentAttack = (position) => {
-      const newBoard = [...playerBoard];
-      const wasHit = newBoard[position] === '🚤';
-      newBoard[position] = wasHit ? '💥' : '❌';
-      
-      socket.emit('attackResult', { 
-        gameId, 
-        position, 
-        result: wasHit ? 'hit' : 'miss' 
+      const wasHit = playerBoard[position] === '🚤';
+      playerBoard[position] = wasHit ? '💥' : '❌';
+
+      socket.emit('attackResult', {
+        gameId,
+        position,
+        result: wasHit ? 'hit' : 'miss',
       });
-      
-      setGameStatus(wasHit ? 'Hit! Your turn next' : 'Miss! Your turn next');
+
+      if (!wasHit) {
+        setMyTurn(true);
+        setGameStatus('Your turn!');
+      }
     };
 
-    const onDisconnect = () => {
-      setConnectionStatus('Disconnected - attempting to reconnect...');
-    };
+    socket.on('gameStart', onGameStart);
+    socket.on('attackResult', onAttackResult);
+    socket.on('opponentAttack', onOpponentAttack);
 
-    const onReconnect = () => {
-      setConnectionStatus('Reconnected!');
-      socket.emit('rejoinGame', { gameId });
-    };
-
-    // Only setup new listeners if gameId changes
-    if (gameId !== prevGameId.current) {
-      socket.on('gameStart', onGameStart);
-      socket.on('attackResult', onAttackResult);
-      socket.on('opponentAttack', onOpponentAttack);
-      socket.on('disconnect', onDisconnect);
-      socket.on('reconnect', onReconnect);
-      
-      prevGameId.current = gameId;
-    }
-
-    // Send ready status when component mounts
     socket.emit('playerReady', { gameId });
 
     return () => {
       socket.off('gameStart', onGameStart);
       socket.off('attackResult', onAttackResult);
       socket.off('opponentAttack', onOpponentAttack);
-      socket.off('disconnect', onDisconnect);
-      socket.off('reconnect', onReconnect);
     };
-  }, [gameId, opponentBoard, playerBoard]);
+  }, [gameId, playerBoard]);
 
   const handleAttack = (position) => {
-    if (!myTurn) return;
-    
-    console.log(`Attacking position ${position}`);
-    socket.emit('attack', { 
-      gameId, 
-      position,
-      timestamp: Date.now() 
-    }, (ack) => {
-      if (ack?.success) {
-        setMyTurn(false);
-        setGameStatus('Waiting for opponent...');
-      } else {
-        console.error('Attack failed:', ack?.error);
-        setGameStatus(ack?.error || 'Attack failed');
-      }
-    });
-  };
+    if (!myTurn || opponentBoard[position] !== '🌊') return;
 
-  // Connection status indicator
-  useEffect(() => {
-    const onConnect = () => setConnectionStatus('Connected');
-    const onConnectError = (err) => setConnectionStatus(`Error: ${err.message}`);
-    
-    socket.on('connect', onConnect);
-    socket.on('connect_error', onConnectError);
-    
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('connect_error', onConnectError);
-    };
-  }, []);
+    socket.emit(
+      'attack',
+      { gameId, position },
+      (ack) => {
+        if (ack?.success) {
+          setGameStatus('Waiting for opponent...');
+        } else {
+          setGameStatus('Attack failed');
+        }
+      }
+    );
+  };
 
   return (
     <div className="game-container">
       <div className="connection-status">
         {connectionStatus} | Game ID: {gameId}
       </div>
-      
+
       <div className="boards">
         <div className="board-section">
           <h3>Your Board</h3>
-          <div className="board-grid">
+          <div className="board-grid grid-6x6">
             {playerBoard.map((value, index) => (
-              <Square 
-                key={`player-${index}`} 
-                value={value}
-                disabled={true} // Can't click your own board
-              />
+              <Square key={`player-${index}`} value={value} disabled={true} />
             ))}
           </div>
         </div>
-        
+
         <div className="board-section">
           <h3>Attack Board</h3>
-          <div className="board-grid">
+          <div className="board-grid grid-6x6">
             {opponentBoard.map((value, index) => (
               <Square
                 key={`opponent-${index}`}
@@ -143,7 +108,7 @@ export default function GameScreen({ gameId, playerBoard }) {
           </div>
         </div>
       </div>
-      
+
       <div className={`game-status ${myTurn ? 'your-turn' : 'opponent-turn'}`}>
         {gameStatus}
         {myTurn && <div className="pulse-animation">▼</div>}

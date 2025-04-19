@@ -21,7 +21,7 @@
 }
 
 .square:disabled {
-  background-color: #cfd8dc;
+  background-color: #407383;
   cursor: not-allowed;
 }
 
@@ -46,7 +46,7 @@ div {
 }
 
 .game-container {
-  background: rgb(8, 0, 0);
+  background: rgb(19, 108, 150);
   padding: 20px;
   min-height: 50vh;
 }
@@ -97,7 +97,7 @@ div {
 }
 
 .your-turn {
-  background: #e6f7e6;
+  background: #37c937;
   font-weight: bold;
 }
 
@@ -121,4 +121,40 @@ div {
   100% {
     opacity: 1;
   }
+}
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr); /* 6 columns */
+  grid-gap: 5px;
+  margin-top: 20px;
+}
+
+.board-section {
+  margin: 20px;
+}
+
+.board-grid .square {
+  width: 50px;
+  height: 50px;
+  background-color: #b0e0e6; /* Adjust color */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #000;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.board-grid .square:disabled {
+  background-color: #d3d3d3;
+  cursor: not-allowed;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr); /* 6 columns */
+  grid-template-rows: repeat(6, 1fr);    /* 6 rows */
+  gap: 5px; /* Optional: spacing between squares */
+  width: 100%; /* Make sure the board fills available space */
+  max-width: 600px; /* Optional: Max width to fit the board */
+  margin: 0 auto; /* Center the board */
 }
