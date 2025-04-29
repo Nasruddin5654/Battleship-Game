@@ -23,7 +23,6 @@ const io = new SocketServer(server, {
   }
 });
 
-// Game configuration
 const BOARD_SIZE = 36;
 const REQUIRED_BOATS = 6;
 const BOAT_SYMBOL = '🚤';
@@ -138,34 +137,28 @@ io.on('connection', (socket) => {
 
   socket.on('attackResult', ({ gameId, position, result }) => {
     const game = activeGames.get(gameId);
-    if (!game) {
-      console.warn(`attackResult: game ${gameId} not found`);
-      return;
-    }
-
-    const opponentId = game.players.find(id => id !== socket.id);
-    if (!opponentId) {
-      console.warn(`attackResult: opponent not found for ${socket.id}`);
-      return;
-    }
-
+    if (!game) return;
+  
+    const attackerId = socket.id;
+    const defenderId = game.players.find(id => id !== attackerId);
+  
     if (result === 'hit') {
-      const currentHits = game.hits.get(socket.id) || 0;
-      const newHits = currentHits + 1;
-      game.hits.set(socket.id, newHits);
-
-      if (newHits >= REQUIRED_BOATS) {
-        io.to(gameId).emit('gameOver', { 
-          winner: socket.id,
-          message: 'Player has sunk all 6 boats!'
-        });
+      const defenderHits = game.hits.get(defenderId) || 0;
+      const newDefenderHits = defenderHits + 1;
+      game.hits.set(defenderId, newDefenderHits);
+  
+      if (newDefenderHits >= REQUIRED_BOATS) {
+        // ATTACKER wins because they hit all defender's boats
+        io.to(attackerId).emit('gameOver', { winner: false, message: 'You won!' });
+        io.to(defenderId).emit('gameOver', { winner: true, message: 'You lost!' });
         activeGames.delete(gameId);
         return;
       }
     }
-
-    io.to(opponentId).emit('attackResult', { position, result });
+  
+    io.to(defenderId).emit('attackResult', { position, result });
   });
+  
 
   socket.on('disconnect', (reason) => {
     console.log(`Disconnected (${socket.id}):`, reason);

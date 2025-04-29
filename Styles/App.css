@@ -158,3 +158,26 @@ div {
   max-width: 600px; /* Optional: Max width to fit the board */
   margin: 0 auto; /* Center the board */
 }
+.winner-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  font-size: 2rem;
+}
+
+.giant-crown {
+  font-size: 5rem;
+  margin-top: 1rem;
+}
+
+.back-button {
+  margin-top: 2rem;
+  padding: 0.8rem 1.5rem;
+  font-size: 1.2rem;
+  background-color: gold;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
