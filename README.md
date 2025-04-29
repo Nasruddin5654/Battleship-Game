@@ -3,7 +3,7 @@
 ## 1. Clone the GitHub Repository
 
 ```bash
-git clone https://github.com/Nasruddin5654/Build-Fellowship-Project.git
+git clone https://github.com/Nasruddin5654/Battleship-game.git
 ```
 
 
