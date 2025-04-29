@@ -24,13 +24,14 @@ npm run dev
 This will start the Vite development server, usually at http://localhost:5173.
 
 🌐 Second Terminal — Socket Server Setup
-
-cd Build-Fellowship-Project
 ```
-npm install
+cd Build-Fellowship-Project
 ```
 ```
 cd server
+```
+```
+npm install
 ```
 ```
 node server.js
