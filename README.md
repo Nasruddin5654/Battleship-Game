@@ -4,24 +4,35 @@
 
 ```bash
 git clone https://github.com/Nasruddin5654/Build-Fellowship-Project.git
-2. Open Two Terminal Windows (or Tabs)
+```
+
+
+## 2. Open Two Terminal Windows (or Tabs)
 You'll run the frontend and the server separately.
 
 🖥 First Terminal — Frontend Setup
-bash
-Copy
-Edit
+
+```
 cd Build-Fellowship-Project
-npm install
+```
+```
+  npm install
+```
+```
 npm run dev
+```
 This will start the Vite development server, usually at http://localhost:5173.
 
 🌐 Second Terminal — Socket Server Setup
-bash
-Copy
-Edit
+
 cd Build-Fellowship-Project
+```
 npm install
+```
+```
 cd server
+```
+```
 node server.js
+```
 This starts the WebSocket server on http://localhost:4000.
